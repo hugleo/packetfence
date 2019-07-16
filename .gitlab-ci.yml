@@ -1,0 +1,38 @@
+### COMMON PARAMETERS
+.build_job: &job_build
+  stage: build
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - result/*
+  tags:
+    - docker
+
+.rhel_script: &rpm_script
+  script:
+    - yum install epel-release -y
+    - tar c -f $RPM_SOURCE_TAR .
+    - ci-build-pkg
+
+### STAGES
+stages:
+ - build
+
+### VARIABLES
+variables:
+  SPEC_FILE: rpm/packetfence.spec
+  RPM_PACKAGE_NAME: 'rpmspec -q --queryformat="%{name}\n" $SPEC_FILE | head -n1'
+  RPM_PACKAGE_VERSION: 'rpmspec -q --queryformat="%{version}\n" $SPEC_FILE | head -n1'
+  RPM_SOURCE_TAR: '$RPM_PACKAGE_NAME-$RPM_PACKAGE_VERSION.tar'
+
+### JOBS
+# for debug purpose
+before_script:
+  - unset http_proxy ; unset https_proxy
+  - env | grep ^CI_
+
+# we use YAML anchors to define same parameters for all builds
+build_centos_7:
+  image: buildpkg/centos:7
+  <<: *job_build
+  <<: *rpm_script
