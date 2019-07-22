@@ -10,6 +10,8 @@
 
 .rhel_script: &rpm_script
   script:
+    # temp to keep current build system in parallel with new on
+    - rm addons/packages/*.spec
     - yum install epel-release -y
     - tar c -f $RPM_SOURCE_TAR .
     - ci-build-pkg
