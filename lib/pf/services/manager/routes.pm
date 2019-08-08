@@ -25,6 +25,7 @@ use pf::config qw(
 );
 use IPC::Cmd qw[can_run run];
 use pf::constants qw($TRUE $FALSE);
+use List::MoreUtils qw(uniq);
 
 use pf::nodecategory qw(nodecategory_view_all);
 
@@ -162,7 +163,8 @@ Add or remove static routes on the system
 sub manageStaticRoute {
     my $add_Route = @_;
     my $logger = get_logger();
-    my $full_path = can_run('ip');
+    my $full_path = can_run('ip')
+        or $logger->error("ip route is not installed! Can't add static routes to routed VLANs.");
 
     if (!$add_Route) {
         if (-f "$install_dir/var/static_routes.bak") {
@@ -188,12 +190,49 @@ sub manageStaticRoute {
         }
     } else {
         open (my $fh, "+>$install_dir/var/static_routes.bak");
-
+        my ( $rt_tables_fh, @rt_lines );
+        open( $rt_tables_fh, '<', "/etc/iproute2/rt_tables" );
+        chomp(@rt_lines = <$rt_tables_fh>);
+        close $rt_tables_fh;
+        my %dev = map { /^(\d+)\s+.*/ => /^\d+\s+(.*)/ } grep { $_ =~ /^\d+\s+.*/ } @rt_lines;
+        my $inc = 4;
+        my @dev = uniq(map { map { $_ } split(',',$ConfigNetworks{$_}{'dev'}) } keys %ConfigNetworks);
+        my %interfaces;
+        foreach my $interface (@dev) {
+            my $cmd = "sudo $full_path route flush table ".$interface."_table;sudo $full_path rule del from all fwmark $inc;sudo $full_path rule add fwmark $inc table ".$interface."_table;sudo $full_path route flush cache";
+            $cmd = untaint_chain($cmd);
+            my @out = pf_run($cmd);
+            $interfaces{$interface} = $inc;
+            $inc++;
+        }
         foreach my $network ( keys %ConfigNetworks ) {
             # shorter, more convenient local accessor
             my %net = %{$ConfigNetworks{$network}};
 
-            if ( defined($net{'next_hop'}) && ($net{'next_hop'} =~ /^(?:\d{1,3}\.){3}\d{1,3}$/) ) {
+            if ( defined($net{'dev'}) ) {
+                my $i = 1;
+                foreach my $dev (split(',',$net{'dev'})) {
+                    if (!(grep { $_ eq $dev."_table" } values %dev)) {
+                        while (exists $dev{$i}) {
+                            $i++;
+                        }
+                        $i .= (" " x (6 - length($i)));
+                        push (@rt_lines, "$i".$dev."_table");
+                        $i++;
+                    }
+                    my $ref = join("\n", @rt_lines);
+                    my $cmd = "sudo tee /etc/iproute2/rt_tables << EOF\n";
+                    $cmd .= $ref;
+                    $cmd .= "\nEOF";
+                    my $output = `$cmd`;
+                    $cmd = "sudo $full_path route add $network" . "/". $net{'netmask'} . " dev " . $dev." table ".$dev."_table";
+                    my $cmd_remove = "sudo $full_path route del $network" . "/". $net{'netmask'} . " dev " . $dev." table ".$dev."_table";
+                    $cmd = untaint_chain($cmd);
+                    my @out = pf_run($cmd);
+                    print $fh $cmd_remove."\n";
+                }
+            }
+            elsif ( defined($net{'next_hop'}) && ($net{'next_hop'} =~ /^(?:\d{1,3}\.){3}\d{1,3}$/) ) {
                 my $full_path = can_run('ip')
                     or $logger->error("ip route is not installed! Can't add static routes to routed VLANs.");
 

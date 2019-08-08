@@ -726,6 +726,17 @@ sub find_server_by_hostname {
     return firstval { $_->{host} eq $hostname } pf::cluster::config_enabled_servers;
 }
 
+=head2 cluster_ip_alias
+
+Returns the cluster IP alias address for an interface
+
+=cut
+
+sub cluster_ip_alias {
+    my ($interface) = @_;
+    return $ConfigCluster{$CLUSTER}->{"interface $interface"}->{alias};
+}
+
 =head1 AUTHOR
 
 Inverse inc. <info@inverse.ca>

@@ -454,10 +454,10 @@ func (pf *pfdns) detectVIP() error {
 				VIP = IP
 			}
 			for _, key := range keyConfNet.Keys {
-				var ConfNet pfconfigdriver.NetworkConf
+				var ConfNet pfconfigdriver.RessourseNetworkConf
 				ConfNet.PfconfigHashNS = key
 				pfconfigdriver.FetchDecodeSocket(ctx, &ConfNet)
-				if (NetIP.Contains(net.ParseIP(ConfNet.DhcpStart)) && NetIP.Contains(net.ParseIP(ConfNet.DhcpEnd))) || NetIP.Contains(net.ParseIP(ConfNet.NextHop)) {
+				if (NetIP.Contains(net.ParseIP(ConfNet.DhcpStart)) && NetIP.Contains(net.ParseIP(ConfNet.DhcpEnd))) || NetIP.Contains(net.ParseIP(ConfNet.NextHop)) || (ConfNet.Dev == eth.Name) {
 					NetIndex.Mask = net.IPMask(net.ParseIP(ConfNet.Netmask))
 					NetIndex.IP = net.ParseIP(key)
 					Index := NetIndex
