@@ -14,6 +14,7 @@ INSTALL		= /usr/bin/install -c -D -m0644
 
 jessie := $(shell (dpkg-distribution --is_jessie && echo "yes") || echo "no")
 stretch := $(shell (dpkg-distribution --is_stretch && echo "yes") || echo "no")
+buster := $(shell (dpkg-distribution --is_buster && echo "yes") || echo "no")
 
 configure: configure-stamp
 configure-stamp:
@@ -292,10 +293,13 @@ binary-arch: build install
 	dh_installdeb
 	dh_shlibdeps
 ifeq ($(jessie),yes)
-	dh_gencontrol -- '-Vpacketfence:dist=openssl-blacklist,openssl-blacklist-extra,libapache2-mod-proxy-html,apache2-mpm-prefork'
+	dh_gencontrol -- '-Vpacketfence:dist=iproute,openssl-blacklist,openssl-blacklist-extra,libapache2-mod-proxy-html,apache2-mpm-prefork'
 endif
 ifeq ($(stretch),yes)
-	dh_gencontrol -- '-Vpacketfence:dist=libclass-xsaccessor-perl,acl'
+	dh_gencontrol -- '-Vpacketfence:dist=iproute,libclass-xsaccessor-perl,acl,libsystemd-daemon-perl'
+endif
+ifeq ($(buster),yes)
+	dh_gencontrol -- '-Vpacketfence:dist=iproute2,libclass-xsaccessor-perl,acl'
 endif
 	dh_md5sums
 	dh_gencontrol

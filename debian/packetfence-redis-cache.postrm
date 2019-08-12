@@ -30,6 +30,9 @@ fi
 if $(dpkg-distribution --is_stretch) ; then
     DIST=stretch
 fi
+if $(dpkg-distribution --is_buster) ; then
+    DIST=buster
+fi
 
 case "$1" in
     upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)

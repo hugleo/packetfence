@@ -28,6 +28,9 @@ fi
 if $(dpkg-distribution --is_stretch) ; then
     DIST=stretch
 fi
+if $(dpkg-distribution --is_buster) ; then
+    DIST=buster
+fi
 
 case "$1" in
     upgrade|deconfigure)
@@ -43,7 +46,7 @@ case "$1" in
                 fi
             fi
         fi
-        if [ ${DIST} = "jessie" ] || [ ${DIST} = "stretch" ]; then
+        if [ ${DIST} = "jessie" ] || [ ${DIST} = "stretch" ] || [ ${DIST} = "buster" ]; then
             systemctl stop packetfence-remote-arp-sensor
         fi
     ;;
